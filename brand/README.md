@@ -48,4 +48,3 @@ what forces a refresh):
 /brand/mark-64-cutout.png   ->  /brand/mark-64.png
 /brand/mark-256-cutout.png  ->  /brand/mark-256.png
 ```
-

@@ -60,14 +60,18 @@ Copy-Item .env.example .env    # then fill in the five values
    `firebase-messaging-sw.js`. These values are public by design; they are not secrets.
 2. **Env** — fill `.env` from the service-account JSON. See [`.env.example`](.env.example).
 3. **Rules** — deploy them before using the app:
+
    ```powershell
    firebase deploy --only firestore:rules
    ```
+
 4. **Run** — the `api/*.js` handlers need the Vercel runtime, so a plain static server
    will serve the UI but every API call 404s:
+
    ```powershell
    npx.cmd vercel dev
    ```
+
    On Windows PowerShell use `npx.cmd` — the `.ps1` shim is blocked by the default
    ExecutionPolicy.
 
