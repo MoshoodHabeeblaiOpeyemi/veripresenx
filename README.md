@@ -1,0 +1,165 @@
+# VeriPresenX
+
+**Verified Presence.** A browser-based, server-authoritative attendance system for
+Nigerian universities. Students check in against a rotating code that is only legible
+from inside the hall, and every check-in is an atomic server-side transaction.
+
+> Formerly **Attendify**. The app was renamed for trademark safety — several unrelated
+> products already use that name. The Firebase project ID remains `attendify-4c93d`;
+> see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## The problem it actually solves
+
+Proxy attendance — "I signed for you" — is the core failure of paper and QR systems.
+VeriPresenX attacks it at four independent points, so defeating one is not enough:
+
+| Control | What it stops |
+| --- | --- |
+| **Rotating PIN** (default 10 s) rendered only on the rep's screen in the hall | Screenshot-and-forward. A forwarded PIN is stale within seconds |
+| **Atomic server transaction** on every check-in | Double check-in, duplicate rows, roster/attendee divergence |
+| **Device lock** — one physical device, many accounts | A single phone checking in a group of friends |
+| **Server-authoritative writes** — clients cannot write attendance at all | Anyone crafting a Firestore write from devtools |
+
+Deliberately **online-first**. The server clock is the anti-cheat authority, so there is
+no offline queue — see [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md).
+
+---
+
+## Stack
+
+| Layer | Choice | Notes |
+| --- | --- | --- |
+| Frontend | Vanilla JS PWA — **no framework, no build step** | `index.html`, `app.js`, `style.css`, `sw.js` |
+| Backend | Vercel serverless functions | `api/*.js`, Node + Firebase Admin SDK |
+| Data | Firestore + `firestore.rules` | Rules are the real access boundary |
+| Auth | Firebase Auth (email/password) | ID token verified on every endpoint |
+| Push | Firebase Cloud Messaging | `firebase-messaging-sw.js` |
+| Brand assets | C# + .NET `System.Drawing`, fully offline | `tools/brand/` — no npm, no ImageMagick |
+
+There is no bundler, no transpiler and no npm dependency in the shipped app.
+`package.json` lists `firebase-admin` only because Vercel resolves it for `api/*.js`.
+
+---
+
+## Quick start
+
+**Prerequisites:** Node 18+, a Firebase project with Firestore + Auth enabled, and a
+service-account key for that project.
+
+```powershell
+git clone <repo-url>
+cd "ATTENDIFY APP"
+
+npm install          # resolves firebase-admin for the api/ functions
+Copy-Item .env.example .env    # then fill in the five values
+```
+
+1. **Web config** — set the Firebase web config inline in `app.js` (~line 373) and in
+   `firebase-messaging-sw.js`. These values are public by design; they are not secrets.
+2. **Env** — fill `.env` from the service-account JSON. See [`.env.example`](.env.example).
+3. **Rules** — deploy them before using the app:
+   ```powershell
+   firebase deploy --only firestore:rules
+   ```
+4. **Run** — the `api/*.js` handlers need the Vercel runtime, so a plain static server
+   will serve the UI but every API call 404s:
+   ```powershell
+   npx.cmd vercel dev
+   ```
+   On Windows PowerShell use `npx.cmd` — the `.ps1` shim is blocked by the default
+   ExecutionPolicy.
+
+### Deploy
+
+Vercel builds from the repo; `vercel.json` sends `Cache-Control: no-cache` for
+`/`, `index.html`, `app.js`, `style.css` and `sw.js`. That is deliberate: a new deploy
+must never be served against a cached service worker. Firestore rules deploy through
+[`.github/workflows/deploy-firestore-rules.yml`](.github/workflows/deploy-firestore-rules.yml).
+
+Set the five env vars in **Vercel → Settings → Environment Variables**.
+
+---
+
+## How a session works
+
+```text
+REP                                    SERVER                         STUDENT
+────────────────────────────────────────────────────────────────────────────────────
+create course (code/dept/level)
+start session  ─────────────────────►  write session/live
+                                       write session/secret {pin, attendees:[rep]}
+PIN + countdown on screen
+  rotate every 10s ──────────────────►  {pin, previousPin, pinRotationTime}
+                                                                      read PIN off screen
+                                       ◄───────────────────────────  POST /attendance?submit
+                                       verify token + App Check
+                                       recompute freshness from pinAge
+                                       runTransaction:
+                                         reject if matric already in attendees
+                                         write checkins/{uid}_{ts}
+                                         union matric into secret.attendees
+                                       ─────────────────────────►  ✅
+close session + physical headcount ──►  write attendance/session_<ts>
+  compare system vs physical count      delete session/live + session/secret
+```
+
+The check-in race is closed inside the transaction, not by the client: the
+`attendees.includes(matric)` test and the write happen in the same atomic unit, so two
+concurrent requests from one matric cannot both succeed.
+
+---
+
+## Project structure
+
+```text
+api/                     6 serverless functions, 13 actions (see below)
+utils/appCheck.js        App Check gate — called FIRST by every endpoint
+app.js                   the entire client (~7 500 lines, no framework)
+index.html               markup + all screen containers
+style.css                theming via :root and data-theme="dark"
+sw.js                    service worker; cache-first for static assets
+firebase-messaging-sw.js FCM background handler
+firestore.rules          the access boundary — read this before changing data shapes
+vercel.json              cache headers
+tools/brand/             offline brand pipeline (C#)
+brand/                   generated assets + source master
+docs/                    architecture, security model, roadmap
+```
+
+### API surface
+
+| Function | Actions |
+| --- | --- |
+| `api/account.js` | `claimMatric`, `deleteAccount` |
+| `api/approval.js` | `approveManual`, `grantHotspot` |
+| `api/attendance.js` | `submit`, `flagAbsent` |
+| `api/course.js` | `enroll`, `leave`, `remove`, `delete` |
+| `api/semester.js` | `endSemester` |
+| `api/session.js` | `close`, `registerDevice` |
+
+Called as `POST /api/<function>?action=<action>` with `Authorization: Bearer <idToken>`.
+
+---
+
+## Documentation
+
+| Doc | Read it when |
+| --- | --- |
+| [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) | **Before changing anything in `api/` or `firestore.rules`.** Freezes the invariants four audit rounds established |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | You need the data model, collection by collection |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | You want to know what is next and why |
+| [PRESENTATION.md](PRESENTATION.md) | You are demoing or writing the launch post |
+| [brand/README.md](brand/README.md) | You are touching logos or icons |
+| [tools/brand/README.md](tools/brand/README.md) | You are changing the asset pipeline itself |
+
+---
+
+## Status
+
+**Functionally complete PWA, demo-ready.** Previously hardened through four internal
+audit rounds. Outstanding gaps are catalogued honestly in
+[docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md#known-gaps) — notably that PIN rotation
+and the 3-strike fail-safe counter are still client-driven, which is what Phase 5
+addresses.
