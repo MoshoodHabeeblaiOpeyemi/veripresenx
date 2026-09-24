@@ -1,6 +1,6 @@
 // 🔖 BUILD MARKER — proves which version of app.js the browser is running.
 // If your console does NOT print "build 256052f-drawer", the running JS is stale.
-console.log("%cAttendify build: premium-design-system (palette refresh, button micro-interactions, success celebration, skeleton shimmer, toast slide-in)", "color:#7C6CF0;font-weight:bold");
+console.log("%cVeriPresenX build: premium-design-system (palette refresh, button micro-interactions, success celebration, skeleton shimmer, toast slide-in)", "color:#7C6CF0;font-weight:bold");
 
 // --- SUCCESS CELEBRATION (premium check-in moment) ---
 function showCheckInSuccess() {
@@ -136,7 +136,7 @@ let currentNavView = "auth";
 function replaceNavState(view) {
   currentNavView = view;
   try {
-    history.replaceState({ attendify: true, view }, "");
+    history.replaceState({ veripresenx: true, view }, "");
   } catch (e) {
     /* older browsers — ignore */
   }
@@ -145,7 +145,7 @@ function replaceNavState(view) {
 function pushNavTrap(view) {
   currentNavView = view;
   try {
-    history.pushState({ attendify: true, view }, "");
+    history.pushState({ veripresenx: true, view }, "");
   } catch (e) {
     /* ignore */
   }
@@ -164,7 +164,7 @@ window.addEventListener("popstate", (event) => {
   }
 
   // Mission-Control drawer open? Back closes the drawer first.
-  if (window.__attendifyCloseDrawer && window.__attendifyCloseDrawer()) {
+  if (window.__veripresenxCloseDrawer && window.__veripresenxCloseDrawer()) {
     pushNavTrap(currentNavView);
     return;
   }
@@ -174,16 +174,16 @@ window.addEventListener("popstate", (event) => {
     return;
   }
 
-  if (currentNavView === "portal" && window.__attendifyReturnToDashboard) {
+  if (currentNavView === "portal" && window.__veripresenxReturnToDashboard) {
     // Back from a course portal → return to the dashboard.
-    window.__attendifyReturnToDashboard();
+    window.__veripresenxReturnToDashboard();
     return;
   }
 
   if (currentNavView === "dashboard") {
     showConfirm({
       title: "Log out?",
-      message: "Do you want to log out of Attendify?",
+      message: "Do you want to log out of VeriPresenX?",
       okText: "Yes, Log out",
       cancelText: "Stay",
       icon: "log-out",
@@ -199,7 +199,7 @@ window.addEventListener("popstate", (event) => {
 
   // Auth screen — the user is about to leave the app entirely.
   showConfirm({
-    title: "Leave Attendify?",
+    title: "Leave VeriPresenX?",
     message: "You are about to exit the app. Are you sure?",
     okText: "Leave",
     cancelText: "Stay",
@@ -719,8 +719,30 @@ function getBestGpsPosition(timeoutMs = 8000, onProgress = null) {
   });
 }
 
+// 🔁 BRAND MIGRATION — this app shipped as "Attendify" before the VeriPresenX
+// rebrand, so existing users still hold their device UUID and theme under the
+// old "attendify_*" keys. Read-through migration preserves that identity instead
+// of silently minting a fresh device UUID (which the server's device lock would
+// treat as a brand-new device) and resetting every user to the default theme.
+function readLocalWithMigration(newKey, legacyKey) {
+  try {
+    const current = localStorage.getItem(newKey);
+    if (current !== null) return current;
+    const legacy = localStorage.getItem(legacyKey);
+    if (legacy === null) return null;
+    localStorage.setItem(newKey, legacy);
+    localStorage.removeItem(legacyKey);
+    return legacy;
+  } catch (_) {
+    return null; // private mode / storage disabled → treat as "no stored value"
+  }
+}
+
 function getOrCreateDeviceId() {
-  let deviceId = localStorage.getItem("attendify_device_uuid");
+  let deviceId = readLocalWithMigration(
+    "veripresenx_device_uuid",
+    "attendify_device_uuid",
+  );
   if (!deviceId) {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
       deviceId = "dev_" + crypto.randomUUID().replace(/-/g, "");
@@ -730,7 +752,7 @@ function getOrCreateDeviceId() {
         Math.random().toString(36).substring(2, 12) +
         Date.now().toString(36);
     }
-    localStorage.setItem("attendify_device_uuid", deviceId);
+    localStorage.setItem("veripresenx_device_uuid", deviceId);
   }
   return deviceId;
 }
@@ -747,7 +769,7 @@ async function seedServerDevice() {
     });
     const result = await response.json();
     if (result && result.deviceId && typeof result.deviceId === "string") {
-      const key = "attendify_device_uuid";
+      const key = "veripresenx_device_uuid";
       if (!localStorage.getItem(key)) {
         localStorage.setItem(key, result.deviceId);
       }
@@ -768,7 +790,7 @@ const MANUAL_OVERRIDE_STRIKES_REQUIRED = 3;
 
 function getFailureState(courseId) {
   try {
-    const raw = localStorage.getItem(`attendify_failures_${courseId}`);
+    const raw = localStorage.getItem(`veripresenx_failures_${courseId}`);
     const parsed = raw ? JSON.parse(raw) : null;
     return parsed && typeof parsed.count === "number"
       ? parsed
@@ -781,7 +803,7 @@ function getFailureState(courseId) {
 function setFailureState(courseId, state) {
   try {
     localStorage.setItem(
-      `attendify_failures_${courseId}`,
+      `veripresenx_failures_${courseId}`,
       JSON.stringify(state),
     );
   } catch (e) {
@@ -952,7 +974,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 🎨 THEME PERSISTENCE — restore the saved theme before first paint.
   // Falls back to the HTML attribute default ("dark") if nothing is stored.
-  const savedTheme = localStorage.getItem("attendify_theme");
+  // Uses the branded-key migration so a theme chosen pre-rebrand still applies.
+  const savedTheme = readLocalWithMigration(
+    "veripresenx_theme",
+    "attendify_theme",
+  );
   if (savedTheme === "light" || savedTheme === "dark") {
     htmlElement.setAttribute("data-theme", savedTheme);
   }
@@ -1134,7 +1160,7 @@ if (mobileMenuBtn && navLinks) {
       const currentTheme = htmlElement.getAttribute("data-theme");
       const newTheme = currentTheme === "light" ? "dark" : "light";
       htmlElement.setAttribute("data-theme", newTheme);
-      localStorage.setItem("attendify_theme", newTheme);
+      localStorage.setItem("veripresenx_theme", newTheme);
       themeToggleBtn.innerHTML =
         newTheme === "dark"
           ? '<i data-lucide="sun"></i>'
@@ -1584,7 +1610,7 @@ if (mobileMenuBtn && navLinks) {
         signupSucceeded = true;
         signupForm.reset();
         toast.success(
-          "Your account is ready. Welcome to Attendify!",
+          "Your account is ready. Welcome to VeriPresenX!",
           "Account Created 🎉",
         );
       } catch (error) {
@@ -1732,6 +1758,10 @@ if (mobileMenuBtn && navLinks) {
             throw new Error(result.error || "Server error during deletion.");
           }
 
+          localStorage.removeItem("veripresenx_device_uuid");
+          localStorage.removeItem("veripresenx_theme");
+          // Clear any pre-rebrand keys too, in case this device never triggered
+          // a read-through migration before the account was deleted.
           localStorage.removeItem("attendify_device_uuid");
           localStorage.removeItem("attendify_theme");
 
@@ -2882,10 +2912,10 @@ if (mobileMenuBtn && navLinks) {
     )}&qrpin=${encodeURIComponent(pin)}&t=${nonce}`;
   }
 
-  // 🎨 Brand QR: stamp the Attendify logo dead-center. Error-correction
+  // 🎨 Brand QR: stamp the VeriPresenX logo dead-center. Error-correction
   // level "H" tolerates ~30% occlusion, so a logo occupying ≤22% of the area
   // still scans reliably (same trick restaurant menu codes use).
-  const QR_LOGO_SRC = "/Attendify Logo.png";
+  const QR_LOGO_SRC = "/brand/mark-256.png";
   let qrLogoImage = null;
   function loadQrLogo() {
     if (qrLogoImage) return Promise.resolve(qrLogoImage);
@@ -3396,7 +3426,7 @@ if (mobileMenuBtn && navLinks) {
 
   // ============================================================
   // 📸 IN-APP QR SCANNER — students scan the class QR from their seat,
-  // inside Attendify (no third-party camera app). Uses the browser's
+  // inside VeriPresenX (no third-party camera app). Uses the browser's
   // native BarcodeDetector (supported by every Android Chrome — the
   // student population's reality). Unsupported/denied browsers get a
   // clear message and fall back to the camera-app deep-link flow.
@@ -3427,7 +3457,7 @@ if (mobileMenuBtn && navLinks) {
       const pin = (url.searchParams.get("qrpin") || "").trim();
       if (!code || !/^\d{4}$/.test(pin)) {
         toast.warning(
-          "That QR isn't an Attendify class code. Point at the QR shown by your Course Rep.",
+          "That QR isn't an VeriPresenX class code. Point at the QR shown by your Course Rep.",
           "Wrong Code",
         );
         return false; // keep scanning
@@ -3474,7 +3504,7 @@ if (mobileMenuBtn && navLinks) {
       console.error("QR scanner camera error:", err);
       stopQrScanner();
       toast.error(
-        "Camera access was blocked. Allow camera permission for Attendify, or type the PIN below.",
+        "Camera access was blocked. Allow camera permission for VeriPresenX, or type the PIN below.",
         "Camera Blocked",
       );
       return;
@@ -3483,7 +3513,7 @@ if (mobileMenuBtn && navLinks) {
     // G4 📱 FULL SCANNER COVERAGE: Android Chrome uses the native
     // BarcodeDetector. Everywhere else (iOS Safari etc.) we lazily load the
     // tiny jsQR decoder from a CDN and decode canvas frames in-app — so no
-    // student is ever forced out of Attendify to scan. If the CDN is
+    // student is ever forced out of VeriPresenX to scan. If the CDN is
     // unreachable, the clear fallback message still appears.
     const useNative = "BarcodeDetector" in window;
     if (!useNative) {
@@ -3499,7 +3529,7 @@ if (mobileMenuBtn && navLinks) {
       if (!window.__jsQR) {
         stopQrScanner();
         toast.info(
-          "This browser can't scan in-app right now (scanner engine unreachable). Use your camera app on the class QR — Attendify opens and checks you in automatically — or type the PIN below.",
+          "This browser can't scan in-app right now (scanner engine unreachable). Use your camera app on the class QR — VeriPresenX opens and checks you in automatically — or type the PIN below.",
           "Scanner Unavailable",
         );
         return;
@@ -3516,7 +3546,7 @@ if (mobileMenuBtn && navLinks) {
       console.error("BarcodeDetector setup error:", err);
       stopQrScanner();
       toast.info(
-        "Scanning isn't supported here. Use your camera app on the class QR — Attendify opens and checks you in automatically.",
+        "Scanning isn't supported here. Use your camera app on the class QR — VeriPresenX opens and checks you in automatically.",
         "Scanner Unavailable",
       );
       return;
@@ -3689,7 +3719,7 @@ if (mobileMenuBtn && navLinks) {
     stopPortalListeners();
     replaceNavState("dashboard");
   }
-  window.__attendifyReturnToDashboard = returnToDashboard;
+  window.__veripresenxReturnToDashboard = returnToDashboard;
 
   // --- CREATE COURSE FORM ---
   const createCourseForm = document.getElementById("createCourseForm");
@@ -4202,7 +4232,7 @@ if (mobileMenuBtn && navLinks) {
     const offsetVal = drawerTab.style.getPropertyValue("--tab-offset");
     try {
       localStorage.setItem(
-        "attendify_drawer_tab_v5",
+        "veripresenx_drawer_tab_v5",
         JSON.stringify({ edge, offset: offsetVal }),
       );
     } catch (e) {
@@ -4214,8 +4244,8 @@ if (mobileMenuBtn && navLinks) {
     if (!drawerTab) return;
     try {
       const raw =
-        localStorage.getItem("attendify_drawer_tab_v5") ||
-        localStorage.getItem("attendify_drawer_tab_v4");
+        localStorage.getItem("veripresenx_drawer_tab_v5") ||
+        localStorage.getItem("veripresenx_drawer_tab_v4");
       const saved = raw ? JSON.parse(raw) : null;
       if (saved && saved.edge) {
         drawerTab.dataset.edge = saved.edge;
@@ -4264,7 +4294,7 @@ if (mobileMenuBtn && navLinks) {
       if (wasTap && !hadCustom) {
         drawerTab.style.removeProperty("--tab-offset");
         try {
-          localStorage.removeItem("attendify_drawer_tab_v5");
+          localStorage.removeItem("veripresenx_drawer_tab_v5");
         } catch (e) {
           /* ignore */
         }
@@ -4291,7 +4321,7 @@ if (mobileMenuBtn && navLinks) {
   window.addEventListener("resize", clampTabToViewport);
 
   // Expose for back-button: drawer open → close drawer (modal-like trap).
-  window.__attendifyCloseDrawer = () => {
+  window.__veripresenxCloseDrawer = () => {
     if (isDrawerOpen) {
       closePortalDrawer();
       return true;
@@ -4301,8 +4331,8 @@ if (mobileMenuBtn && navLinks) {
 
   // Whenever the portal is closed, reset to the default view and hide the tab.
   const _drwReturnToDashboard =
-    window.__attendifyReturnToDashboard || function () {};
-  window.__attendifyReturnToDashboard = function () {
+    window.__veripresenxReturnToDashboard || function () {};
+  window.__veripresenxReturnToDashboard = function () {
     closePortalDrawer();
     syncDrawerTabVisibility();
     _drwReturnToDashboard();
@@ -5428,7 +5458,7 @@ if (mobileMenuBtn && navLinks) {
 
     const halls = activeCourse.savedHalls || [];
     const storedPreference = localStorage.getItem(
-      `attendify_last_hall_${activeCourse.id}`,
+      `veripresenx_last_hall_${activeCourse.id}`,
     );
     // Legacy values ("no_gps"/"live_gps") used to live in this dropdown —
     // they are attendance-mode choices now, so ignore them here.
@@ -5474,7 +5504,7 @@ if (mobileMenuBtn && navLinks) {
         selectEl.value = val;
       }
       if (val.startsWith("hall_")) {
-        localStorage.setItem(`attendify_last_hall_${activeCourse.id}`, val);
+        localStorage.setItem(`veripresenx_last_hall_${activeCourse.id}`, val);
       }
       if (!badgeEl) return;
       const hId = String(val).replace("hall_", "");
@@ -5534,7 +5564,7 @@ if (mobileMenuBtn && navLinks) {
   function getQrDisplayChoice() {
     if (!activeCourse) return "projector";
     return (
-      localStorage.getItem(`attendify_qrdisplay_${activeCourse.id}`) ||
+      localStorage.getItem(`veripresenx_qrdisplay_${activeCourse.id}`) ||
       "projector"
     );
   }
@@ -5565,7 +5595,7 @@ if (mobileMenuBtn && navLinks) {
       const btn = e.target.closest("button[data-qr-display]");
       if (!btn || !activeCourse) return;
       localStorage.setItem(
-        `attendify_qrdisplay_${activeCourse.id}`,
+        `veripresenx_qrdisplay_${activeCourse.id}`,
         btn.dataset.qrDisplay,
       );
       syncQrDisplayChoiceUI();
@@ -5577,7 +5607,7 @@ if (mobileMenuBtn && navLinks) {
     if (!activeCourse) return "pin_only";
     const halls = activeCourse.savedHalls || [];
     let mode =
-      localStorage.getItem(`attendify_mode_${activeCourse.id}`) ||
+      localStorage.getItem(`veripresenx_mode_${activeCourse.id}`) ||
       (halls.length > 0 ? "full_combo" : "pin_only");
     // Prototype gating: GPS modes are unavailable while the toggle is off —
     // silently fall back to the strongest non-GPS mode so a stale saved
@@ -5606,7 +5636,7 @@ if (mobileMenuBtn && navLinks) {
       btn.style.cssText = `text-align: left; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.72rem; border: 1.5px solid ${active ? "var(--teal)" : "var(--border)"}; background: ${active ? "rgba(45, 224, 201, 0.12)" : "var(--bg)"}; color: var(--text); transition: border-color 0.15s ease;`;
       btn.innerHTML = `<div style="font-weight: 700; margin-bottom: 3px;">${cfg.icon} ${cfg.title}${active ? " ✓" : ""}</div><div style="color: var(--muted);">${cfg.desc}</div>`;
       btn.addEventListener("click", () => {
-        localStorage.setItem(`attendify_mode_${activeCourse.id}`, mode);
+        localStorage.setItem(`veripresenx_mode_${activeCourse.id}`, mode);
         renderModeCards();
         syncModeUI();
       });

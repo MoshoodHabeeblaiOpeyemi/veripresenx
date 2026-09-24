@@ -1,19 +1,26 @@
 {
-  "name": "Attendify",
-  "short_name": "Attendify",
+  "name": "VeriPresenX — Verified Attendance",
+  "short_name": "VeriPresenX",
+  "description": "Server-authoritative, anti-proxy attendance for Nigerian universities.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0D17",
-  "theme_color": "#6C5DD3",
+  "theme_color": "#7C6CF0",
   "icons": [
     {
-      "src": "/Attendify Logo.png",
+      "src": "/brand/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/Attendify Logo.png",
+      "src": "/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

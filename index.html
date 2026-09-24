@@ -4,41 +4,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/png" href="/Attendify Logo.png">
-  <title>Attendify | Smart Student Attendance</title>
+  <meta name="description" content="VeriPresenX — verified, server-authoritative attendance for Nigerian universities. Anti-proxy check-in by live QR, PIN and GPS, with course reps and level advisers in one trust chain.">
+  <meta name="theme-color" content="#7C6CF0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0A0B14" media="(prefers-color-scheme: dark)">
+  <title>VeriPresenX | Verified Attendance Platform</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/brand/apple-touch-icon-180.png">
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <script src="https://unpkg.com/lucide@1.45.0"></script>
-  <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" focusable="false" aria-hidden="true" style="overflow:hidden" id="attendify-wordmark">
-    <defs>
-      <linearGradient id="wmark-grad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#7C6CF0"/>
-        <stop offset="100%" stop-color="#06D6A0"/>
-      </linearGradient>
-    </defs>
-    <g fill="url(#wmark-grad)">
-      <circle cx="6.5" cy="12" r="6.5"/>
-      <rect x="13" y="5" width="2.6" height="14" rx="1.3"/>
-      <rect x="16.2" y="4" width="2.6" height="16" rx="1.3" opacity="0.92"/>
-      <rect x="19.4" y="6" width="2.6" height="12" rx="1.3" opacity="0.80"/>
-    </g>
-  </svg>
 </head>
 
 <body>
 
   <!-- SPLASH SCREEN -->
   <div id="splashScreen">
-    <img src="Attendify Logo.png" alt="Attendify" class="splash-logo" />
-    <span class="splash-text">Attendify</span>
+    <img src="/brand/mark-256.png" alt="VeriPresenX" class="splash-logo" />
+    <span class="splash-text">VeriPresenX</span>
     <span class="splash-hint">Click anywhere to continue...</span>
   </div>
 
   <!-- NAVBAR -->
   <header class="navbar">
     <div class="brand">
-      <img src="Attendify Logo.png" alt="Attendify" class="brand-logo" />
-      <span class="brand-text">Attendify</span>
+      <img src="/brand/mark-64.png" alt="VeriPresenX" class="brand-logo" />
+      <span class="brand-text">VeriPresenX</span>
     </div>
 
     <div style="display: flex; align-items: center; gap: 10px;">
@@ -54,7 +44,7 @@
       <button id="openSettingsBtn" class="theme-btn hidden" title="Account Settings" style="padding: 8px 12px;">
         <i data-lucide="settings"></i>
       </button>
-      <button id="openGuideBtn" class="theme-btn" title="How Attendify Works"
+      <button id="openGuideBtn" class="theme-btn" title="How VeriPresenX Works"
         style="padding: 8px 12px; font-weight: 600;">
         <i data-lucide="book-open"></i> Guide
       </button>
@@ -857,7 +847,7 @@
   <div id="guideModal" class="modal">
     <div class="modal-card" style="max-width: 540px; max-height: 88vh; overflow-y: auto; padding: 26px 22px;">
 
-      <h3 style="margin-bottom: 4px;"><i data-lucide="book-open"></i> Your Attendify Handbook</h3>
+      <h3 style="margin-bottom: 4px;"><i data-lucide="book-open"></i> Your VeriPresenX Handbook</h3>
       <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 14px;">Everything you need to know — in about two minutes. Pick your lane below.</p>
 
       <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
@@ -1053,7 +1043,7 @@
     <canvas id="qrCanvas" style="background: #ffffff; border-radius: 16px; padding: 18px;"></canvas>
     <div id="qrPinText" style="color: #ffffff; font-size: 1.4rem; letter-spacing: 8px; font-weight: bold;">----</div>
     <p style="color: rgba(255, 255, 255, 0.65); font-size: 0.85rem; margin: 0; max-width: 420px;">
-      Students: scan this with your camera app — it opens Attendify and checks you in automatically.
+      Students: scan this with your camera app — it opens VeriPresenX and checks you in automatically.
       The code refreshes on its own; screenshots expire with it.
     </p>
     <p id="qrRotationHint" style="color: #28a745; font-size: 0.8rem; margin: 0; font-weight: 600;">Next code in: --s</p>
@@ -1178,7 +1168,7 @@
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })
           .then((reg) => reg.update())
-          .then(() => console.log("Attendify service worker updated"))
+          .then(() => console.log("VeriPresenX service worker updated"))
           .catch((err) => console.log("Service Worker registration failed", err));
       });
     }

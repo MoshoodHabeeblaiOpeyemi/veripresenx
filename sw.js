@@ -1,6 +1,16 @@
 // Bump this version string on EVERY deploy so the SW refreshes automatically
-const CACHE_NAME = "attendify-static-v25";
-const STATIC_ASSETS = ["/", "/index.html", "/app.js", "/style.css", "/Attendify Logo.png"];
+const CACHE_NAME = "veripresenx-static-v26";
+const STATIC_ASSETS = [
+  "/",
+  "/index.html",
+  "/app.js",
+  "/style.css",
+  "/manifest.json",
+  "/brand/mark-64.png",
+  "/brand/mark-256.png",
+  "/brand/favicon-32.png",
+  "/brand/apple-touch-icon-180.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
