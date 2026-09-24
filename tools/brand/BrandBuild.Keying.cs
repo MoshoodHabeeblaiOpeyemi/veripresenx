@@ -19,7 +19,12 @@ public static partial class BrandBuild
     // white plate behind the shield. Everything the fill cannot reach is the mark
     // -- which is also how the shield's enclosed pale ring survives, sealed in by
     // the violet outline, where a global near-white key would have destroyed it.
-    static void KeyBackground(Bitmap bmp)
+    //
+    // `cutout` picks the alpha policy. false keeps the enclosed whites opaque, so
+    // the shield reads as a solid badge. true punches every non-artwork pixel out,
+    // so the white band and the pale interior go transparent and the page
+    // background shows through, leaving only the violet/teal artwork.
+    static void KeyBackground(Bitmap bmp, bool cutout)
     {
         int w = bmp.Width, h = bmp.Height, n = w * h;
         BitmapData d = bmp.LockBits(new Rectangle(0, 0, w, h), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
@@ -49,6 +54,7 @@ public static partial class BrandBuild
             }
             Log("artwork px " + artCount + " of " + n);
 
+            bool[] artRaw = (bool[])art.Clone(); // classification before closing
             CloseArt(art, w, h, 10);
             int closedCount = 0;
             for (int i = 0; i < n; i++) { if (art[i]) closedCount++; }
@@ -78,9 +84,18 @@ public static partial class BrandBuild
             }
 
             byte[] a0 = new byte[n];
-            int outCount = 0;
-            for (int i = 0; i < n; i++) { if (outside[i]) { a0[i] = 0; outCount++; } else a0[i] = 255; }
-            Log("background reached from border " + outCount + " px; opaque " + (n - outCount));
+            if (cutout)
+            {
+                int cutOpaque = 0;
+                for (int i = 0; i < n; i++) { if (artRaw[i]) { a0[i] = 255; cutOpaque++; } }
+                Log("cutout: opaque " + cutOpaque + " px, whites punched out");
+            }
+            else
+            {
+                int outCount = 0;
+                for (int i = 0; i < n; i++) { if (outside[i]) { a0[i] = 0; outCount++; } else a0[i] = 255; }
+                Log("background reached from border " + outCount + " px; opaque " + (n - outCount));
+            }
 
             // Safety net: drop specks. A grid-line fragment in a darker corner of
             // the master could classify as artwork and survive as an opaque fleck.

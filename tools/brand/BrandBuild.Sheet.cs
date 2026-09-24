@@ -51,11 +51,14 @@ public static partial class BrandBuild
         Log("wrote " + name + " " + new FileInfo(p).Length + " bytes");
     }
 
-    // Contact sheet: the mark at five sizes on BOTH themes plus the icons, so the
-    // keying quality and the icon look can be judged by eye in one image.
-    static void BuildPreview(Bitmap mark, string path)
+    // Decision sheet: SOLID vs CUTOUT side by side, on BOTH themes. Both variants
+    // are built from the same geometry, so the outlines register exactly and the
+    // only thing that changes across the columns is what happens to the shield's
+    // white interior.
+    static void BuildPreview(Bitmap solid, Bitmap cutout, string path)
     {
-        int W = 1000, H = 620, band = H / 2;
+        int cellW = 380, cellH = 300;
+        int W = cellW * 2, H = cellH * 2;
         Bitmap b = new Bitmap(W, H, PixelFormat.Format32bppArgb);
         using (Graphics g = Graphics.FromImage(b))
         {
@@ -65,50 +68,50 @@ public static partial class BrandBuild
             g.PixelOffsetMode = PixelOffsetMode.HighQuality;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-            using (SolidBrush lb = new SolidBrush(Color.FromArgb(255, 245, 243, 255))) g.FillRectangle(lb, 0, 0, W, band);
-            using (SolidBrush db = new SolidBrush(Color.FromArgb(255, 10, 11, 20))) g.FillRectangle(db, 0, band, W, band);
-
             using (Font f = new Font("Segoe UI", 9f))
+            using (Font ft = new Font("Segoe UI", 10f, FontStyle.Bold))
             using (SolidBrush inkL = new SolidBrush(Color.FromArgb(255, 30, 41, 59)))
             using (SolidBrush inkD = new SolidBrush(Color.FromArgb(255, 226, 232, 240)))
+            using (SolidBrush lbl = new SolidBrush(Color.FromArgb(255, 100, 116, 139)))
             {
-                int[] sizes = new int[] { 160, 128, 64, 40, 24 };
-                string[] icons = new string[] { "icon-192.png", "icon-maskable-512.png", "favicon-32.png" };
+                int[] sizes = new int[] { 128, 64, 32, 24 };
+                string[] captions = new string[] { "SOLID  (white interior kept)", "CUTOUT  (whites transparent)" };
 
-                for (int bi = 0; bi < 2; bi++)
+                for (int row = 0; row < 2; row++)
                 {
-                    int top = bi * band;
-                    int cy = top + 110;
-                    int labelY = top + 215;
-                    string cap = bi == 0 ? "LIGHT THEME  bg #F5F3FF" : "DARK THEME  bg #0A0B14";
-                    g.DrawString(cap, f, bi == 0 ? inkL : inkD, 24, top + 16);
-
-                    int x = 24;
-                    foreach (int s in sizes)
+                    bool dark = row == 1;
+                    using (SolidBrush bg = new SolidBrush(dark
+                        ? Color.FromArgb(255, 10, 11, 20)
+                        : Color.FromArgb(255, 245, 243, 255)))
                     {
-                        using (Bitmap m = Resize(mark, s, s))
-                        {
-                            g.DrawImage(m, x, cy - s / 2, s, s);
-                        }
-                        g.DrawString(s + "px", f, bi == 0 ? inkL : inkD, x, labelY);
-                        x += s + 26;
+                        g.FillRectangle(bg, 0, row * cellH, W, cellH);
                     }
 
-                    int ix = 706;
-                    foreach (string ic in icons)
+                    for (int col = 0; col < 2; col++)
                     {
-                        using (Bitmap im = new Bitmap(Path.Combine(Out, ic)))
-                        using (Bitmap rs = Resize(im, 80, 80))
+                        Bitmap m = col == 0 ? solid : cutout;
+                        int ox = col * cellW, oy = row * cellH;
+                        g.DrawString((dark ? "DARK   " : "LIGHT   ") + captions[col], ft,
+                            dark ? inkD : inkL, ox + 20, oy + 16);
+
+                        int x = ox + 20;
+                        foreach (int s in sizes)
                         {
-                            g.DrawImage(rs, ix, cy - 40, 80, 80);
+                            using (Bitmap r = Resize(m, s, s))
+                            {
+                                g.DrawImage(r, x, oy + 76, s, s);
+                            }
+                            g.DrawString(s + "px", f, lbl, x, oy + 212);
+                            x += s + 22;
                         }
-                        g.DrawString(ic.Replace(".png", ""), f, bi == 0 ? inkL : inkD, ix, labelY);
-                        ix += 96;
                     }
                 }
 
-                using (Pen p = new Pen(Color.FromArgb(60, 128, 128, 128)))
-                    g.DrawLine(p, 0, band, W, band);
+                using (Pen p = new Pen(Color.FromArgb(90, 128, 128, 128)))
+                {
+                    g.DrawLine(p, cellW, 0, cellW, H);
+                    g.DrawLine(p, 0, cellH, W, cellH);
+                }
             }
         }
         b.Save(path, ImageFormat.Png);

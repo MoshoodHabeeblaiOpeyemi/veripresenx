@@ -17,11 +17,58 @@ public static partial class BrandBuild
     {
         Out = Path.Combine(root, "brand");
         Directory.CreateDirectory(Out);
-        string master = Path.Combine(Out, "veripresenx-master.jpg");
+        // Prefer a PNG master when one has been supplied: a PNG can carry a real
+        // alpha channel, which is strictly better than inferring a mask from a
+        // flattened JPEG. Falls back to the original JPEG master.
+        string master = Path.Combine(Out, "veripresenx-master.png");
+        if (!File.Exists(master)) master = Path.Combine(Out, "veripresenx-master.jpg");
         Log("master exists=" + File.Exists(master));
 
+        // Two masks from one source. SOLID keeps the shield's white interior, so
+        // the mark reads as a badge. CUTOUT punches every light pixel out, so the
+        // white band and the pale interior go transparent and the page background
+        // shows through, leaving only the violet/teal artwork. Both come from the
+        // same geometry, so the outlines register exactly and preview.png can be
+        // read as a like-for-like comparison.
+        Bitmap squareSolid = BuildMark(master, false);
+        Bitmap squareCutout = BuildMark(master, true);
+
+        Bitmap solid1024 = Resize(squareSolid, 1024, 1024);
+        SavePng(solid1024, "veripresenx-mark-1024.png");
+        Bitmap solid256 = Resize(squareSolid, 256, 256);
+        SavePng(solid256, "mark-256.png");
+        Bitmap solid64 = Resize(solid256, 64, 64);
+        SavePng(solid64, "mark-64.png");
+
+        Bitmap cutout1024 = Resize(squareCutout, 1024, 1024);
+        SavePng(cutout1024, "veripresenx-mark-cutout-1024.png");
+        Bitmap cutout256 = Resize(squareCutout, 256, 256);
+        SavePng(cutout256, "mark-256-cutout.png");
+        Bitmap cutout64 = Resize(cutout256, 64, 64);
+        SavePng(cutout64, "mark-64-cutout.png");
+        squareSolid.Dispose(); squareCutout.Dispose();
+        solid256.Dispose(); solid64.Dispose(); cutout256.Dispose(); cutout64.Dispose();
+
+        // Icons are always SOLID: they sit on an opaque navy plate, so a cutout
+        // would merely reveal that plate through the shield.
+        ComposeIcon(solid1024, 512, 0.72f, "icon-512.png");
+        ComposeIcon(solid1024, 192, 0.72f, "icon-192.png");
+        ComposeIcon(solid1024, 512, 0.58f, "icon-maskable-512.png");
+        ComposeIcon(solid1024, 180, 0.72f, "apple-touch-icon-180.png");
+        ComposeIcon(solid1024, 32, 0.74f, "favicon-32.png");
+
+        BuildPreview(solid1024, cutout1024, Path.Combine(Out, "preview.png"));
+        solid1024.Dispose();
+        cutout1024.Dispose();
+        Log("done");
+    }
+
+    // Full pipeline for ONE variant: locate the mark, key it, tighten it, square-pad
+    // it. Returns the square-padded master, still oversized, for the caller to resize.
+    static Bitmap BuildMark(string master, bool cutout)
+    {
         Bitmap src = Load32(master);
-        Log("master dims " + src.Width + "x" + src.Height);
+        Log("master dims " + src.Width + "x" + src.Height + (cutout ? " [cutout]" : " [solid]"));
 
         Rectangle box = FindMarkBox(src);
         Log("mark box x=" + box.X + " y=" + box.Y + " w=" + box.Width + " h=" + box.Height);
@@ -35,7 +82,7 @@ public static partial class BrandBuild
         src.Dispose();
         Log("crop " + crop.Width + "x" + crop.Height);
 
-        KeyBackground(mark);
+        KeyBackground(mark, cutout);
         Rectangle tight = AlphaBox(mark);
         Log("tight x=" + tight.X + " y=" + tight.Y + " w=" + tight.Width + " h=" + tight.Height);
         Bitmap tightBmp = Crop(mark, tight);
@@ -43,24 +90,7 @@ public static partial class BrandBuild
 
         Bitmap square = PadSquare(tightBmp, 0.09f);
         tightBmp.Dispose();
-
-        Bitmap mark1024 = Resize(square, 1024, 1024);
-        SavePng(mark1024, "veripresenx-mark-1024.png");
-        Bitmap mark256 = Resize(square, 256, 256);
-        SavePng(mark256, "mark-256.png");
-        Bitmap mark64 = Resize(mark256, 64, 64);
-        SavePng(mark64, "mark-64.png");
-        square.Dispose(); mark256.Dispose(); mark64.Dispose();
-
-        ComposeIcon(mark1024, 512, 0.72f, "icon-512.png");
-        ComposeIcon(mark1024, 192, 0.72f, "icon-192.png");
-        ComposeIcon(mark1024, 512, 0.58f, "icon-maskable-512.png");
-        ComposeIcon(mark1024, 180, 0.72f, "apple-touch-icon-180.png");
-        ComposeIcon(mark1024, 32, 0.74f, "favicon-32.png");
-
-        BuildPreview(mark1024, Path.Combine(Out, "preview.png"));
-        mark1024.Dispose();
-        Log("done");
+        return square;
     }
 
     // ---------- io ----------

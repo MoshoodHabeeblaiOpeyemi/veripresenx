@@ -4,7 +4,7 @@ Rebuilds every image in `brand/` from a single source image — offline, determi
 with no npm / ImageMagick / external tooling. Windows PowerShell 5.1 + .NET
 `System.Drawing`.
 
-```
+```powershell
 powershell -ExecutionPolicy Bypass -File tools\brand\build.ps1
 ```
 
@@ -52,12 +52,17 @@ Every file listed in `brand/README.md`, overwritten on each run.
    the opaque neighbours), then bleed artwork colour 2 px outward so bicubic downscaling
    interpolates colour-to-colour rather than colour-to-light.
 
-5. **Compose** (`ComposeIcon`) — square-pad with a 9% margin, then emit the mark ladder
-   (1024 / 256 / 64), the favicon, the four app icons, and the QA contact sheet.
+5. **Compose** (`ComposeIcon`) — square-pad with a 9% margin, then emit both variant
+   ladders (SOLID and CUTOUT, at 1024 / 256 / 64), the favicon, the four app icons, and
+   the SOLID-vs-CUTOUT decision sheet. `Run` builds both variants from the same geometry
+   so the outlines register exactly and `preview.png` is a like-for-like comparison.
 
 ## Adapting this to a different logo
 
-1. Drop the new artwork in as `brand/veripresenx-master.jpg`.
+1. Drop the new artwork in as `brand/veripresenx-master.jpg`. A
+   `brand/veripresenx-master.png` takes precedence if one is present — and a PNG with a
+   **real alpha channel** is by far the best input, because the mask then comes from the
+   file instead of being inferred, leaving no threshold or closing radius doing any work.
 2. Run it and read the diagnostics it prints: `artwork px`, `silhouette after closing`,
    `components`. A healthy run reports **`components 1`** (one solid mark) and a `tight`
    box that does **not** start at 0,0.
@@ -69,7 +74,7 @@ Every file listed in `brand/README.md`, overwritten on each run.
 ## Files
 
 | File | Role |
-|---|---|
+| --- | --- |
 | `build.ps1` | Runner |
 | `BrandBuild.cs` | `Run` orchestration, pixel IO, mark detection, alpha bounding, square pad, resize |
 | `BrandBuild.Keying.cs` | `KeyBackground` — classification + border flood fill, alpha build |

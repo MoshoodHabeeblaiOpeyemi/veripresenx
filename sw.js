@@ -1,13 +1,13 @@
 // Bump this version string on EVERY deploy so the SW refreshes automatically
-const CACHE_NAME = "veripresenx-static-v26";
+const CACHE_NAME = "veripresenx-static-v27";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/app.js",
   "/style.css",
   "/manifest.json",
-  "/brand/mark-64.png",
-  "/brand/mark-256.png",
+  "/brand/mark-64-cutout.png",
+  "/brand/mark-256-cutout.png",
   "/brand/favicon-32.png",
   "/brand/apple-touch-icon-180.png",
 ];
