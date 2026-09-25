@@ -1,0 +1,122 @@
+/* Phase 2 - Role picker: browse free, lock only on signup.
+   Horizontal snap deck: 1 tall card in view, side cards peek.
+   Desktop: 3-up with focused card lifted. Mobile: swipe + dots. */
+#rolePicker { max-width: 1060px; margin: 0 auto; padding: 10px 4px 0; }
+.role-hero { text-align: center; margin-bottom: 18px; }
+.role-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--teal); background: var(--teal-glow);
+  border: 1px solid var(--card-border);
+  padding: 6px 12px; border-radius: 999px; margin-bottom: 12px;
+}
+.role-eyebrow svg { width: 14px; height: 14px; }
+.role-hero h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+  letter-spacing: -0.6px; margin-bottom: 8px;
+}
+.role-sub { color: var(--text-muted); font-size: 0.92rem; max-width: 520px; margin: 0 auto; }
+.role-track-wrap { position: relative; }
+.role-track {
+  display: flex; gap: 18px; overflow-x: auto;
+  scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  padding: 26px 8px 18px; scrollbar-width: none;
+}
+.role-track::-webkit-scrollbar { display: none; }
+.role-card {
+  position: relative; scroll-snap-align: center;
+  flex: 0 0 min(78vw, 300px); min-height: min(60vh, 520px);
+  display: flex; flex-direction: column; align-items: flex-start; text-align: left;
+  background: var(--card-bg); border: 1.5px solid var(--card-border);
+  border-radius: 26px; padding: 26px 22px 20px;
+  box-shadow: var(--shadow); overflow: hidden;
+  transform: scale(0.94); opacity: 0.72;
+  transition: transform 0.45s var(--ease-out-expo), opacity 0.45s ease,
+    border-color 0.3s ease, box-shadow 0.45s ease;
+}
+.role-card.active { transform: scale(1); opacity: 1; }
+.role-card::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px;
+  background: conic-gradient(from 120deg, transparent 55%, var(--teal), var(--violet-2), transparent 90%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
+}
+.role-card.active::after { opacity: 1; }
+.role-glow {
+  position: absolute; inset: -30% -40% auto -40%; height: 70%;
+  filter: blur(46px); opacity: 0.5; pointer-events: none;
+}
+.role-adviser .role-glow { background: linear-gradient(180deg, rgba(124,108,240,.4), transparent 70%); }
+.role-rep .role-glow { background: linear-gradient(180deg, rgba(6,214,160,.35), transparent 70%); }
+.role-student .role-glow { background: linear-gradient(180deg, rgba(159,139,255,.35), transparent 70%); }
+.role-badge {
+  position: relative; z-index: 1;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--text-muted); border: 1px solid var(--card-border); background: var(--bg);
+  padding: 5px 10px; border-radius: 999px; margin-bottom: 14px;
+}
+.role-icon {
+  position: relative; z-index: 1;
+  width: 58px; height: 58px; border-radius: 18px;
+  display: grid; place-items: center; margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--teal), var(--violet));
+  box-shadow: 0 14px 28px -10px var(--accent-glow);
+}
+.role-icon svg { width: 27px; height: 27px; color: #fff; }
+.role-rep .role-icon { background: linear-gradient(135deg, #06D6A0, #0EA5A4); }
+.role-adviser .role-icon { background: linear-gradient(135deg, #7C6CF0, #4F46E5); }
+.role-card h3 {
+  font-family: var(--font-display); font-size: 1.35rem;
+  letter-spacing: -0.4px; margin-bottom: 8px; position: relative; z-index: 1;
+}
+.role-desc { font-size: 0.9rem; line-height: 1.55; color: var(--text-muted); margin-bottom: 14px; position: relative; z-index: 1; }
+
+.role-points { list-style: none; display: grid; gap: 8px; margin-bottom: 18px; position: relative; z-index: 1; }
+.role-points li { display: flex; align-items: center; gap: 8px; font-size: 0.84rem; font-weight: 600; }
+.role-points svg { width: 15px; height: 15px; color: var(--teal); flex-shrink: 0; }
+.role-cta { width: 100%; justify-content: center; margin-top: auto; position: relative; z-index: 1; }
+.role-cta svg { width: 16px; height: 16px; }
+.role-free { display: block; text-align: center; width: 100%; font-size: 0.72rem; color: var(--text-muted); margin-top: 10px; position: relative; z-index: 1; }
+.role-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer; z-index: 2;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  color: var(--text-primary); box-shadow: var(--shadow);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.role-arrow:hover { transform: translateY(-50%) scale(1.08); }
+.role-arrow svg { width: 20px; height: 20px; }
+.role-prev { left: -6px; }
+.role-next { right: -6px; }
+.role-dots { display: flex; justify-content: center; gap: 8px; margin: 6px 0 12px; }
+.role-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--border); transition: all 0.3s ease; cursor: pointer; }
+.role-dot.active { width: 26px; background: linear-gradient(90deg, var(--teal), var(--violet)); }
+.role-foot { text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+.role-foot a { color: var(--teal); font-weight: 700; text-decoration: none; }
+.role-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 0.82rem; font-weight: 600; margin-bottom: 10px;
+}
+.role-back:hover { color: var(--text-primary); }
+.role-back svg { width: 15px; height: 15px; }
+.role-context {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--teal-glow); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 9px 12px; margin-bottom: 16px; font-size: 0.82rem; font-weight: 600;
+}
+.role-context button {
+  background: transparent; border: 1px solid var(--card-border); border-radius: 999px;
+  padding: 4px 12px; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--text-primary);
+}
+@media (min-width: 900px) {
+  .role-track { overflow: visible; justify-content: center; }
+  .role-card { flex: 1 1 0; max-width: 300px; }
+  .role-arrow { display: none; }
+}
+@media (max-width: 640px) {
+  .role-card { min-height: 60vh; }
+}

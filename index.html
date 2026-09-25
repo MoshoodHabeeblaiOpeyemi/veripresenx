@@ -11,6 +11,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/brand/apple-touch-icon-180.png">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="role-picker.css">
   <link rel="manifest" href="manifest.json">
   <script src="https://unpkg.com/lucide@1.45.0"></script>
 </head>
@@ -66,10 +67,92 @@
     <!-- AUTH WRAPPER -->
     <div id="authContainer">
 
+      <!-- ROLE PICKER — browse freely, nothing locks until signup succeeds -->
+      <section id="rolePicker" aria-label="Choose your role">
+        <div class="role-hero">
+          <span class="role-eyebrow"><i data-lucide="sparkles"></i> Join VeriPresenX</span>
+          <h2>Who are you joining as?</h2>
+          <p class="role-sub">Swipe through the cards and explore. Nothing is locked until you create your account.</p>
+        </div>
+
+        <div class="role-track-wrap">
+          <button type="button" class="role-arrow role-prev" id="rolePrev" aria-label="Previous role">
+            <i data-lucide="chevron-left"></i>
+          </button>
+
+          <div class="role-track" id="roleTrack">
+            <article class="role-card role-adviser" data-role="adviser" tabindex="0" aria-label="Level Adviser">
+              <div class="role-glow" aria-hidden="true"></div>
+              <span class="role-badge">Root of trust</span>
+              <div class="role-icon"><i data-lucide="shield-check"></i></div>
+              <h3>Level Adviser</h3>
+              <p class="role-desc">Verified staff managing one level of a department. Import the class list and pick the rep.</p>
+              <ul class="role-points">
+                <li><i data-lucide="check"></i> One adviser per level</li>
+                <li><i data-lucide="check"></i> Imports the roster</li>
+                <li><i data-lucide="check"></i> Picks the course rep</li>
+              </ul>
+              <button type="button" class="btn role-cta" data-go-role="adviser">Continue as Adviser <i data-lucide="arrow-right"></i></button>
+              <span class="role-free">Tap to preview — no commitment</span>
+            </article>
+
+            <article class="role-card role-rep" data-role="rep" tabindex="0" aria-label="Course Rep">
+              <div class="role-glow" aria-hidden="true"></div>
+              <span class="role-badge">1 per level</span>
+              <div class="role-icon"><i data-lucide="users"></i></div>
+              <h3>Course Rep</h3>
+              <p class="role-desc">A student chosen by the adviser to run attendance for a level. One per level.</p>
+              <ul class="role-points">
+                <li><i data-lucide="check"></i> Chosen by your adviser</li>
+                <li><i data-lucide="check"></i> Starts live sessions</li>
+                <li><i data-lucide="check"></i> Approves edge cases</li>
+              </ul>
+              <button type="button" class="btn role-cta" data-go-role="rep">Continue as Rep <i data-lucide="arrow-right"></i></button>
+              <span class="role-free">Tap to preview — no commitment</span>
+            </article>
+
+            <article class="role-card role-student" data-role="student" tabindex="0" aria-label="Regular Student">
+              <div class="role-glow" aria-hidden="true"></div>
+              <span class="role-badge">Most common</span>
+              <div class="role-icon"><i data-lucide="graduation-cap"></i></div>
+              <h3>Regular Student</h3>
+              <p class="role-desc">Join your courses and check in. Device-locked, real-time.</p>
+              <ul class="role-points">
+                <li><i data-lucide="check"></i> Validated by roster</li>
+                <li><i data-lucide="check"></i> Live QR + PIN check-in</li>
+                <li><i data-lucide="check"></i> Track your rate</li>
+              </ul>
+              <button type="button" class="btn role-cta" data-go-role="student">Continue as Student <i data-lucide="arrow-right"></i></button>
+              <span class="role-free">Tap to preview — no commitment</span>
+            </article>
+          </div>
+
+          <button type="button" class="role-arrow role-next" id="roleNext" aria-label="Next role">
+            <i data-lucide="chevron-right"></i>
+          </button>
+        </div>
+
+        <div class="role-dots" id="roleDots" aria-hidden="true">
+          <span class="role-dot active" data-dot="0"></span>
+          <span class="role-dot" data-dot="1"></span>
+          <span class="role-dot" data-dot="2"></span>
+        </div>
+
+        <p class="role-foot">
+          Already have an account?
+          <a href="#" id="showLoginFromPicker">Log In</a>
+        </p>
+      </section>
+
       <!-- SIGN UP CARD -->
       <section id="signupCard" class="card hidden">
-        <h2><i data-lucide="user-plus"></i> Create Account</h2>
-        <p>Sign up to start managing or joining classes.</p>
+        <button type="button" id="backToRolesFromSignup" class="role-back"><i data-lucide="arrow-left"></i> All roles</button>
+        <div id="roleContextBanner" class="role-context hidden">
+          <span id="roleContextText">Joining as Student</span>
+          <button type="button" id="changeRoleBtn">Change</button>
+        </div>
+        <h2><i data-lucide="user-plus"></i> <span id="signupTitle">Create Account</span></h2>
+        <p id="signupSubtitle">Sign up to start managing or joining classes.</p>
 
         <form id="signupForm">
           <div class="field">
@@ -125,7 +208,8 @@
       </section>
 
       <!-- LOG IN CARD -->
-      <section id="loginCard" class="card">
+      <section id="loginCard" class="card hidden">
+        <button type="button" id="backToRolesFromLogin" class="role-back"><i data-lucide="arrow-left"></i> All roles</button>
         <h2><i data-lucide="log-in"></i> Welcome Back</h2>
         <p>Log in to access your course portals.</p>
 

@@ -1438,8 +1438,7 @@ if (mobileMenuBtn && navLinks) {
   if (showLoginBtn) {
     showLoginBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      signupCard.classList.add("hidden");
-      loginCard.classList.remove("hidden");
+      showAuthView("login");
     });
   }
 
@@ -1447,10 +1446,107 @@ if (mobileMenuBtn && navLinks) {
   if (showSignupBtn) {
     showSignupBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      loginCard.classList.add("hidden");
-      signupCard.classList.remove("hidden");
+      showAuthView("picker");
     });
   }
+
+  // --- PHASE 2: ROLE PICKER — browse free, lock only on signup success ---
+  // pendingRole is just a *draft intention* (signup subtitle + rep checkbox).
+  // It NEVER persists and NEVER locks anything until createUser succeeds.
+  let pendingRole = null;
+  const rolePicker = document.getElementById("rolePicker");
+  const roleTrack = document.getElementById("roleTrack");
+  const roleCards = rolePicker ? Array.from(rolePicker.querySelectorAll(".role-card")) : [];
+  const roleDots = Array.from(document.querySelectorAll(".role-dot"));
+  const rolePrev = document.getElementById("rolePrev");
+  const roleNext = document.getElementById("roleNext");
+  const roleContextBanner = document.getElementById("roleContextBanner");
+  const roleContextText = document.getElementById("roleContextText");
+  const signupTitle = document.getElementById("signupTitle");
+  const signupSubtitle = document.getElementById("signupSubtitle");
+
+  const ROLE_LABEL = { adviser: "Level Adviser", rep: "Course Rep", student: "Regular Student" };
+  const ROLE_SUB = {
+    adviser: "Staff verification first — then import your level roster.",
+    rep: "Your adviser must have picked you — otherwise you join as a student.",
+    student: "Join your courses and check in. Device-locked, real-time.",
+  };
+
+  function setActiveRoleCard(index) {
+    roleCards.forEach((c, i) => c.classList.toggle("active", i === index));
+    roleDots.forEach((d, i) => d.classList.toggle("active", i === index));
+  }
+
+  function activeRoleIndex() {
+    if (!roleTrack || roleCards.length === 0) return 0;
+    let best = 0, bestDist = Infinity;
+    const center = roleTrack.scrollLeft + roleTrack.clientWidth / 2;
+    roleCards.forEach((c, i) => {
+      const dist = Math.abs(c.offsetLeft + c.offsetWidth / 2 - center);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    });
+    return best;
+  }
+
+  function scrollRoleTo(index) {
+    if (!roleTrack || !roleCards[index]) return;
+    const c = roleCards[index];
+    roleTrack.scrollTo({ left: c.offsetLeft - (roleTrack.clientWidth - c.offsetWidth) / 2, behavior: "smooth" });
+    setActiveRoleCard(index);
+  }
+
+  if (roleTrack) {
+    let raf = null;
+    roleTrack.addEventListener("scroll", () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = null; setActiveRoleCard(activeRoleIndex()); });
+    }, { passive: true });
+    setActiveRoleCard(window.innerWidth >= 900 ? 1 : 0);
+  }
+
+  if (rolePrev) rolePrev.addEventListener("click", () => scrollRoleTo(Math.max(0, activeRoleIndex() - 1)));
+  if (roleNext) roleNext.addEventListener("click", () => scrollRoleTo(Math.min(roleCards.length - 1, activeRoleIndex() + 1)));
+  roleDots.forEach((d) => d.addEventListener("click", () => scrollRoleTo(Number(d.dataset.dot || 0))));
+
+  function showAuthView(view, role) {
+    if (rolePicker) rolePicker.classList.toggle("hidden", view !== "picker");
+    signupCard.classList.toggle("hidden", view !== "signup");
+    loginCard.classList.toggle("hidden", view !== "login");
+    if (view === "signup") {
+      if (role && ROLE_LABEL[role]) pendingRole = role; // draft only — safe to change
+      const label = ROLE_LABEL[pendingRole] || "Account";
+      if (roleContextBanner) roleContextBanner.classList.toggle("hidden", !pendingRole);
+      if (roleContextText && pendingRole) roleContextText.textContent = "Joining as " + label;
+      if (signupTitle) signupTitle.textContent = pendingRole ? "Join as " + label : "Create Account";
+      if (signupSubtitle) signupSubtitle.textContent = (pendingRole && ROLE_SUB[pendingRole]) || "Sign up to start managing or joining classes.";
+      const repBox = document.getElementById("isRepCheckbox");
+      if (repBox && pendingRole) repBox.checked = pendingRole === "rep"; // hint only; server decides later
+    }
+    refreshIcons();
+  }
+
+  document.querySelectorAll("[data-go-role]").forEach((btn) => {
+    btn.addEventListener("click", () => showAuthView("signup", btn.dataset.goRole));
+  });
+  // Tapping a card (not its button) just brings it into focus — still no lock.
+  roleCards.forEach((card, i) => {
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("[data-go-role]")) return;
+      scrollRoleTo(i);
+    });
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); scrollRoleTo(i); }
+    });
+  });
+
+  const backToRoles = document.getElementById("backToRolesFromSignup");
+  if (backToRoles) backToRoles.addEventListener("click", () => showAuthView("picker"));
+  const backToRolesLogin = document.getElementById("backToRolesFromLogin");
+  if (backToRolesLogin) backToRolesLogin.addEventListener("click", () => showAuthView("picker"));
+  const changeRoleBtn = document.getElementById("changeRoleBtn");
+  if (changeRoleBtn) changeRoleBtn.addEventListener("click", () => showAuthView("picker"));
+  const showLoginFromPicker = document.getElementById("showLoginFromPicker");
+  if (showLoginFromPicker) showLoginFromPicker.addEventListener("click", (e) => { e.preventDefault(); showAuthView("login"); });
 
   function checkAuth() {
     if (currentUser) {
@@ -1486,8 +1582,10 @@ if (mobileMenuBtn && navLinks) {
       dashboardSection.classList.add("hidden");
       logoutBtn.classList.add("hidden");
       if (openSettingsBtn) openSettingsBtn.classList.add("hidden");
-      signupCard.classList.add("hidden");
-      loginCard.classList.remove("hidden"); // Sets login as default!
+      // Default landing for logged-out users is the role picker (browse free).
+      // Login/signup are one tap away; nothing locks until signup succeeds.
+      if (typeof showAuthView === "function") showAuthView("picker");
+      else { signupCard.classList.add("hidden"); loginCard.classList.add("hidden"); if (rolePicker) rolePicker.classList.remove("hidden"); }
     }
   }
 
