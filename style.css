@@ -245,6 +245,12 @@ html { color-scheme: light; }
   display: block;
 }
 
+.brand-wordmark {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+
 .brand-text {
   background: linear-gradient(135deg, var(--teal), var(--violet));
   -webkit-background-clip: text;
@@ -276,6 +282,12 @@ html { color-scheme: light; }
   width: 120px;
   height: auto;
   animation: splashLogoIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.splash-wordmark {
+  height: 44px;
+  width: auto;
+  animation: splashTextIn 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .splash-text {

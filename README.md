@@ -36,7 +36,7 @@ no offline queue — see [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md).
 | Data | Firestore + `firestore.rules` | Rules are the real access boundary |
 | Auth | Firebase Auth (email/password) | ID token verified on every endpoint |
 | Push | Firebase Cloud Messaging | `firebase-messaging-sw.js` |
-| Brand assets | C# + .NET `System.Drawing`, fully offline | `tools/brand/` — no npm, no ImageMagick |
+| Brand assets | Web-optimized PNG / WebP icons and mark | `brand/` |
 
 There is no bundler, no transpiler and no npm dependency in the shipped app.
 `package.json` lists `firebase-admin` only because Vercel resolves it for `api/*.js`.
@@ -127,8 +127,7 @@ sw.js                    service worker; cache-first for static assets
 firebase-messaging-sw.js FCM background handler
 firestore.rules          the access boundary — read this before changing data shapes
 vercel.json              cache headers
-tools/brand/             offline brand pipeline (C#)
-brand/                   generated assets + source master
+brand/                   logo, mark, wordmark, app icons and preview sheet
 docs/                    architecture, security model, roadmap
 ```
 
@@ -156,7 +155,6 @@ Called as `POST /api/<function>?action=<action>` with `Authorization: Bearer <id
 | [docs/ROADMAP.md](docs/ROADMAP.md) | You want to know what is next and why |
 | [PRESENTATION.md](PRESENTATION.md) | You are demoing or writing the launch post |
 | [brand/README.md](brand/README.md) | You are touching logos or icons |
-| [tools/brand/README.md](tools/brand/README.md) | You are changing the asset pipeline itself |
 
 ---
 

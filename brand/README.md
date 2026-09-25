@@ -1,17 +1,12 @@
 # brand/
 
-Every file here except `veripresenx-master.jpg` is **generated** by
-`tools/brand/build.ps1`. Do not hand-edit the outputs — change the master and rebuild:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\brand\build.ps1
-```
+Static brand assets for VeriPresenX (app icons, mark variations, and wordmark).
 
 ## Files
 
 | File | Size | Where it is used |
 | --- | --- | --- |
-| `veripresenx-master.jpg` | 2816×1536 | Source artwork (shield + wordmark + tagline). The only hand-authored input. A `veripresenx-master.png` beside it takes precedence. |
+| `veripresenx-wordmark.png` | 1850×370 | Navbar & Splash brand wordmark. |
 | `mark-64-cutout.png` | 64² | **Navbar** — `index.html` `.brand-logo`, displayed at 32 px, so 2× for retina. |
 | `mark-256-cutout.png` | 256² | **Splash screen** — `index.html` `.splash-logo`, displayed at 120 px, so 2× for retina. |
 | `mark-64.png`, `mark-256.png` | 64², 256² | SOLID equivalents of the two above, kept so the navbar and splash can be flipped between variants with a one-line change. |
