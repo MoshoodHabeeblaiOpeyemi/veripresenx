@@ -6,9 +6,8 @@ Static brand assets for VeriPresenX (app icons, mark variations, and wordmark).
 
 | File | Size | Where it is used |
 | --- | --- | --- |
-| `veripresenx-wordmark.png` | 1850×370 | Navbar & Splash brand wordmark. |
-| `mark-64-cutout.png` | 64² | **Navbar** — `index.html` `.brand-logo`, displayed at 32 px, so 2× for retina. |
-| `mark-256-cutout.png` | 256² | **Splash screen** — `index.html` `.splash-logo`, displayed at 120 px, so 2× for retina. |
+| `veripresenx-wordmark.png` | 1839×349 | Navbar (wordmark only) & Splash brand wordmark. PNG is keyed from black so edges stay clean; CSS blends it (`screen` on dark / `multiply` on light) to hide any 1px fringe. |
+| `mark-256-cutout.png` | 256² | **Splash screen + app icons** — `index.html` `.splash-logo`, displayed at 120 px, so 2× for retina. |
 | `mark-64.png`, `mark-256.png` | 64², 256² | SOLID equivalents of the two above, kept so the navbar and splash can be flipped between variants with a one-line change. |
 | `veripresenx-mark-cutout-1024.png` | 1024² | Archival mark, whites punched out. Not shipped to browsers. |
 | `veripresenx-mark-1024.png` | 1024² | Archival mark, whites kept. Not shipped to browsers. |
