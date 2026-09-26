@@ -96,8 +96,9 @@ Verified by **identity evidence**, not by a human vouching for a human:
 | B — NIN | Licensed provider returns name, DOB, photo; compare photo to the live selfie |
 | C — Staff ID | Upload + directory cross-check, else operator review |
 
-`role: "level_anchor"` · `anchorVerifications/{uid}` · `api/verification.js` (7th
-function; the Hobby cap is 12, so it fits).
+`role: "level_anchor"` · `adviserVerifications/{uid}` (transient 6-digit code) ·
+`adviserSlots/adviser_{INST}_{DEPT}_{LEVEL}` (one-adviser-per-level claim) ·
+`api/verification.js` (7th function; the Hobby cap is 12, so it fits).
 
 ### Do these first, before any code
 

@@ -31,13 +31,15 @@ cached service worker.
 
 | Collection | Doc ID | Written by | Purpose |
 | --- | --- | --- | --- |
-| `users` | `{uid}` | client (self, constrained) | Profile: `uid`, `matric`, `isRep`, `institution`, `department`, `level` |
+| `users` | `{uid}` | client (self, constrained) | Profile: `uid`, `matric`, `isRep`, `institution`, `department`, `level`, plus `role` / `isAdviser` / `verificationStatus` / `verifiedAt` / `verificationMethod`, which only the backend may ever change |
 | `users/{uid}/fcmTokens` | push token | client (self) | Device registrations for emergency alerts |
 | `users/{uid}/notifications` | auto | **backend only** | "Flagged absent — see your Rep" alerts. Client may read, never write |
 | `courses` | `{courseId}` | client (create, `validCourseFields()`) | `code`, `repUid`, `institution`, `department`, `level`, `enrolled[]`, `assistants[]` |
 | `departmentReps` | `{repId}` | client (self) | Rep directory for cross-course discovery |
 | `matricRegistry` | `INST\|MATRIC` | **backend only** | One matric → one uid. `allow read, write: if false` |
 | `devices` | `u_{uid}` | **backend only** | `{uid, matric, lastSeenAt}` — the device lock |
+| `adviserVerifications` | `{uid}` | **backend only** | Transient 6-digit adviser code + `attempts` (max 5) + `expiresAt` (10 min). Deleted on success or lockout |
+| `adviserSlots` | `adviser_{INST}_{DEPT}_{LEVEL}` | **backend only** | The one-adviser-per-level claim. Written in the same transaction that promotes the user to `role: "level_anchor"` |
 
 ### `courses/{courseId}` subcollections
 
@@ -184,7 +186,7 @@ Recorded so the next phases do not have to rediscover it.
 | Canonical department | Free-text, `norm()`-compared (`api/course.js:71`) | **Phase 4:** `departments/{id}` with `{institutionId, slug, faculty}` |
 | Level | Free-text string, `norm()`-compared | **Phase 4:** level enum; must match `departmentRosters` keys |
 | Level-wide roster | Does not exist | **Phase 7:** `departmentRosters/{instId\|deptId\|levelCode\|semester}` |
-| Anchor role | Does not exist | **Phase 6:** `role: "level_anchor"` + `anchorVerifications/{uid}` |
+| Adviser role | `role: "adviser"` (unverified) is written by the client at signup; only `api/verification.js` (Admin SDK) can promote it to `role: "level_anchor"` and set `verificationStatus: "verified"`. `firestore.rules` pins every role/verification field on `users` update so a client cannot self-promote | **Phase 4:** gate the adviser dashboard on `role == "level_anchor"` |
 | Rep existence gate | Any user can create a course (`validCourseFields()` only checks field types) | **Phase 6:** rep signup must require an anchor for that (institution, department, level) |
 
 **⚠️ Phase 7 relaxes a security check deliberately.** `api/course.js:69-74` currently
