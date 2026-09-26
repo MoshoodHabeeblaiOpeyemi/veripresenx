@@ -20,7 +20,6 @@
 
   <!-- SPLASH SCREEN -->
   <div id="splashScreen">
-    <div class="splash-glow" aria-hidden="true"></div>
     <div class="splash-brand">
       <img src="/brand/mark-256-cutout.png" alt="VeriPresenX Logo" class="splash-logo" />
       <img src="/brand/veripresenx-wordmark.png" alt="VeriPresenX" class="splash-wordmark" />
@@ -83,7 +82,7 @@
           <div class="role-track" id="roleTrack">
             <article class="role-card role-adviser" data-role="adviser" tabindex="0" aria-label="Level Adviser">
               <div class="role-glow" aria-hidden="true"></div>
-              <span class="role-badge">Root of trust</span>
+              <span class="role-badge">One per level</span>
               <div class="role-icon"><i data-lucide="shield-check"></i></div>
               <h3>Level Adviser</h3>
               <p class="role-desc">Verified staff managing one level of a department. Import the class list and pick the rep.</p>
@@ -154,14 +153,34 @@
         <h2><i data-lucide="user-plus"></i> <span id="signupTitle">Create Account</span></h2>
         <p id="signupSubtitle">Sign up to start managing or joining classes.</p>
 
-        <form id="signupForm">
-          <div class="field">
-            <label for="signupName">Full Name</label>
-            <input type="text" id="signupName" required placeholder="John Doe">
+        <form id="signupForm" novalidate>
+          <div class="field role-adviser-only hidden">
+            <label for="adviserFirstName">First Name</label>
+            <input type="text" id="adviserFirstName" placeholder="Amina">
           </div>
-          <div class="field">
+          <div class="field role-adviser-only hidden">
+            <label for="adviserLastName">Last Name</label>
+            <input type="text" id="adviserLastName" placeholder="Bello">
+          </div>
+          <div class="field role-student-only hidden">
+            <label for="signupFirstName">First Name</label>
+            <input type="text" id="signupFirstName" placeholder="John">
+          </div>
+          <div class="field role-student-only hidden">
+            <label for="signupMiddleName">Middle Name <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+            <input type="text" id="signupMiddleName" placeholder="Oluwaseun">
+          </div>
+          <div class="field role-student-only hidden">
+            <label for="signupLastName">Last Name</label>
+            <input type="text" id="signupLastName" placeholder="Doe">
+          </div>
+          <div class="field role-generic-only">
+            <label for="signupName">Full Name</label>
+            <input type="text" id="signupName" placeholder="John Doe">
+          </div>
+          <div class="field role-student-only hidden">
             <label for="signupMatric">Matric Number</label>
-            <input type="text" id="signupMatric" required placeholder="e.g., UCH/2022/4092">
+            <input type="text" id="signupMatric" placeholder="e.g., UCH/2022/4092">
           </div>
           <div class="input-group autocomplete-wrapper">
             <label for="signupInstitution">Institution / University</label>
@@ -180,7 +199,7 @@
             <div id="levelSuggestions" class="suggestions-box hidden"></div>
           </div>
           <div class="field">
-            <label for="signupEmail">Email Address</label>
+            <label for="signupEmail" id="signupEmailLabel">Email Address</label>
             <input type="email" id="signupEmail" required placeholder="student@university.edu">
           </div>
           <div class="field">
@@ -189,16 +208,15 @@
             <small style="color: var(--muted); font-size: 0.75rem; display: block; margin-top: 4px;">Use something you
               can remember securely.</small>
           </div>
-
-          <!-- COURSE REP CHECKBOX -->
-          <div class="field" style="display: flex; align-items: center; gap: 10px; margin-bottom: 25px;">
-            <input type="checkbox" id="isRepCheckbox"
-              style="width: 20px; height: 20px; accent-color: var(--teal); cursor: pointer;">
-            <label for="isRepCheckbox" style="margin-bottom: 0; cursor: pointer; font-size: 0.9rem;">Register as a
-              Course Rep</label>
+          <div class="field">
+            <label for="signupPasswordConfirm">Retype Password</label>
+            <input type="password" id="signupPasswordConfirm" required placeholder="••••••••" autocomplete="new-password">
           </div>
-
-          <button type="submit" class="btn"><i data-lucide="user-check"></i> Sign Up</button>
+          <div class="field role-adviser-only hidden" id="ninFieldWrap" title="Available after pilot — pending provider onboarding">
+            <label for="ninButton">NIN Verification <span style="color:var(--muted);font-weight:400;">(coming soon)</span></label>
+            <button type="button" id="ninButton" class="btn-outline" disabled style="width:100%;padding:10px;border-radius:10px;opacity:.55;cursor:not-allowed;">Verify with NIN — Available after pilot</button>
+          </div>
+          <button type="submit" class="btn"><i data-lucide="user-check"></i> <span id="signupSubmitLabel">Sign Up</span></button>
         </form>
 
         <p style="text-align: center; margin-top: 15px; font-size: 0.85rem;">
@@ -242,7 +260,8 @@
       <div class="dashboard-header">
         <h2><i data-lucide="hand-metal"></i> Hey, <span id="displayName">Student</span>!</h2>
         <p style="margin-bottom: 5px;">
-          <span style="font-weight: bold; color: var(--navy);">Matric No:</span> <strong id="displayMatric">---</strong>
+          <span style="font-weight: bold; color: var(--navy);" id="displayMatricLabel">Matric No:</span> <strong
+            id="displayMatric">---</strong>
         </p>
         <p style="font-size: 0.9rem; font-weight: 600; color: var(--teal); margin-bottom: 10px;" id="displaySchoolInfo">
           ---

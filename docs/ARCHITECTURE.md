@@ -147,7 +147,7 @@ even if every automated control were defeated.
 | Concern | Where |
 | --- | --- |
 | Serverless functions | `api/*.js` — Vercel, Node runtime |
-| Function count | 6. Vercel Hobby allows 12, so Phase 4's `api/verification.js` fits |
+| Function count | 7 (`account`, `approval`, `attendance`, `course`, `semester`, `session`, `verification`). Vercel Hobby allows 12, so there is headroom |
 | Rules deploy | `.github/workflows/deploy-firestore-rules.yml` → `firestore deploy --only firestore:rules` |
 | Cache policy | `vercel.json` |
 | Env | Vercel project settings — 5 vars, see [`.env.example`](../.env.example) |

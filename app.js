@@ -26,6 +26,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  sendEmailVerification,
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 import {
   getFirestore,
@@ -1508,19 +1509,40 @@ if (mobileMenuBtn && navLinks) {
   if (roleNext) roleNext.addEventListener("click", () => scrollRoleTo(Math.min(roleCards.length - 1, activeRoleIndex() + 1)));
   roleDots.forEach((d) => d.addEventListener("click", () => scrollRoleTo(Number(d.dataset.dot || 0))));
 
+  function applyRoleToForm() {
+    // pendingRole: 'adviser' | 'rep' | 'student' | null (generic fallback).
+    // Card is the ONLY distinction: checkbox is gone.
+    const isAdviser = pendingRole === "adviser";
+    const isStudentLike = pendingRole === "rep" || pendingRole === "student";
+    document.querySelectorAll(".role-adviser-only").forEach((el) => el.classList.toggle("hidden", !isAdviser));
+    document.querySelectorAll(".role-student-only").forEach((el) => el.classList.toggle("hidden", !isStudentLike));
+    document.querySelectorAll(".role-generic-only").forEach((el) => el.classList.toggle("hidden", isAdviser || isStudentLike));
+    const label = ROLE_LABEL[pendingRole] || "Account";
+    if (roleContextBanner) roleContextBanner.classList.toggle("hidden", !pendingRole);
+    if (roleContextText && pendingRole) roleContextText.textContent = "Joining as " + label;
+    if (signupTitle) signupTitle.textContent = pendingRole ? "Join as " + label : "Create Account";
+    if (signupSubtitle) signupSubtitle.textContent = (pendingRole && ROLE_SUB[pendingRole]) || "Sign up to start managing or joining classes.";
+    const emailLabel = document.getElementById("signupEmailLabel");
+    if (emailLabel) emailLabel.textContent = isAdviser ? "School Email" : "Email Address";
+    const submitLabel = document.getElementById("signupSubmitLabel");
+    if (submitLabel) submitLabel.textContent = pendingRole ? "Join as " + label : "Sign Up";
+    refreshIcons();
+  }
+
   function showAuthView(view, role) {
     if (rolePicker) rolePicker.classList.toggle("hidden", view !== "picker");
     signupCard.classList.toggle("hidden", view !== "signup");
     loginCard.classList.toggle("hidden", view !== "login");
     if (view === "signup") {
       if (role && ROLE_LABEL[role]) pendingRole = role; // draft only — safe to change
-      const label = ROLE_LABEL[pendingRole] || "Account";
-      if (roleContextBanner) roleContextBanner.classList.toggle("hidden", !pendingRole);
-      if (roleContextText && pendingRole) roleContextText.textContent = "Joining as " + label;
-      if (signupTitle) signupTitle.textContent = pendingRole ? "Join as " + label : "Create Account";
-      if (signupSubtitle) signupSubtitle.textContent = (pendingRole && ROLE_SUB[pendingRole]) || "Sign up to start managing or joining classes.";
-      const repBox = document.getElementById("isRepCheckbox");
-      if (repBox && pendingRole) repBox.checked = pendingRole === "rep"; // hint only; server decides later
+      // A signup view is meant to be reached through a role card, but if any
+      // path ever lands here with no role we fall back to "student" rather
+      // than null. With null, applyRoleToForm() hides EVERY role-specific field
+      // and shows only the generic "Full Name" box, while the submit handler
+      // still defaults to the student path and demands first/middle/last +
+      // matric — a form the user can see but can never satisfy.
+      else if (!ROLE_LABEL[pendingRole]) pendingRole = "student";
+      applyRoleToForm();
     }
     refreshIcons();
   }
@@ -1557,7 +1579,20 @@ if (mobileMenuBtn && navLinks) {
       if (openSettingsBtn) openSettingsBtn.classList.remove("hidden");
 
       displayName.textContent = currentUser.name;
-      displayMatric.textContent = currentUser.matric;
+      // Advisers have NO matric — the trust chain keys them on
+      // institution/department/level, not a student number. Assigning the raw
+      // `null` to textContent renders the literal string "null" in the
+      // dashboard greeting, so branch on it and show the role instead.
+      if (displayMatric) {
+        const hasMatric = Boolean(currentUser.matric);
+        displayMatric.textContent = hasMatric
+          ? currentUser.matric
+          : ROLE_LABEL[currentUser.role] || "Member";
+        const matricLabel = document.getElementById("displayMatricLabel");
+        if (matricLabel) {
+          matricLabel.textContent = hasMatric ? "Matric No:" : "Role:";
+        }
+      }
 
       const displaySchoolInfo = document.getElementById("displaySchoolInfo");
       if (displaySchoolInfo) {
@@ -1595,16 +1630,46 @@ if (mobileMenuBtn && navLinks) {
     signupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const submitBtn = signupForm.querySelector("button[type='submit']");
-      const name = document.getElementById("signupName").value.trim();
-      const matric = normalizeMatric(
-        document.getElementById("signupMatric").value,
-      );
+      // Role comes ONLY from the card (pendingRole). Checkbox is gone.
+      const signedRole = pendingRole === "adviser" ? "adviser" : pendingRole === "rep" ? "rep" : "student";
+      const isAdviserSignup = signedRole === "adviser";
+      const isRepSignup = signedRole === "rep";
+
+      // Name handling per role
+      let name = "";
+      let firstName = "", middleName = "", lastName = "";
+      if (isAdviserSignup) {
+        firstName = document.getElementById("adviserFirstName").value.trim();
+        lastName = document.getElementById("adviserLastName").value.trim();
+        if (!firstName || !lastName) { toast.error("Please enter your first and last name.", "Missing name"); return; }
+        name = firstName + " " + lastName;
+      } else if (signedRole === "rep" || signedRole === "student") {
+        firstName = document.getElementById("signupFirstName").value.trim();
+        middleName = document.getElementById("signupMiddleName").value.trim();
+        lastName = document.getElementById("signupLastName").value.trim();
+        if (!firstName || !lastName) { toast.error("Please enter your first and last name.", "Missing name"); return; }
+        name = [firstName, middleName, lastName].filter(Boolean).join(" ");
+      } else {
+        name = document.getElementById("signupName").value.trim();
+        if (!name) { toast.error("Please enter your full name.", "Missing name"); return; }
+      }
+
+      // Matric: required for rep/student, hidden & skipped for adviser
+      let matric = "";
+      if (!isAdviserSignup) {
+        matric = normalizeMatric(document.getElementById("signupMatric").value);
+        if (!matric) { toast.error("Please enter your matric number.", "Missing matric"); return; }
+      }
       const email = document
         .getElementById("signupEmail")
         .value.trim()
         .toLowerCase();
+      if (!email) { toast.error("Please enter your " + (isAdviserSignup ? "school email." : "email address."), "Missing email"); return; }
       const password = document.getElementById("signupPassword").value;
-      const isRep = document.getElementById("isRepCheckbox").checked;
+      const passwordConfirm = document.getElementById("signupPasswordConfirm").value;
+      if (!password || password.length < 6) { toast.error("Password must be at least 6 characters.", "Weak password"); return; }
+      if (password !== passwordConfirm) { toast.error("Passwords do not match. Please retype.", "Password mismatch"); return; }
+      const isRep = isRepSignup; // card decides, not a checkbox
 
       const institutionInput = document.getElementById("signupInstitution");
       const departmentInput = document.getElementById("signupDepartment");
@@ -1619,31 +1684,41 @@ if (mobileMenuBtn && navLinks) {
       const level = levelInput
         ? levelInput.value.trim().toUpperCase()
         : "GENERAL";
+      if (!institution || !department || !level || institution === "GENERAL" || department === "GENERAL" || level === "GENERAL") {
+        toast.error("Please fill Institution, Department and Level.", "Missing details"); return;
+      }
 
       // 🛑 DOUBLE-CHECK GATE: the form does NOT create anything yet. First the
       // user reviews every value they entered and explicitly confirms. Their
       // matric number is shown as locked because it becomes their permanent
       // identity across courses and can NEVER be changed after signup.
+      const confirmDetails = [
+        { label: "Full Name", value: name },
+      ];
+      if (!isAdviserSignup) {
+        confirmDetails.push({
+          label: "🔒 Matric Number",
+          value: `${matric} (permanent — cannot be changed)`,
+        });
+      }
+      confirmDetails.push(
+        { label: "Institution", value: institution },
+        { label: "Department", value: department },
+        { label: "Level", value: level },
+        { label: isAdviserSignup ? "School Email" : "Email", value: email },
+        { label: "Account Type", value: ROLE_LABEL[signedRole] || signedRole },
+      );
+      const confirmMessage = isAdviserSignup
+        ? "Please double-check everything below. You are joining as a Level Adviser — email verification comes next."
+        : "Please double-check everything below. Your matric number is PERMANENT — it cannot be changed after signup.";
       const confirmed = await showConfirm({
         title: "Confirm Your Details",
-        message:
-          "Please double-check everything below. Your matric number is PERMANENT — it cannot be changed after signup.",
+        message: confirmMessage,
         okText: "Yes, Create Account",
         cancelText: "No, Let Me Fix It",
         danger: false,
         icon: "📝",
-        details: [
-          { label: "Full Name", value: name },
-          {
-            label: "🔒 Matric Number",
-            value: `${matric} (permanent — cannot be changed)`,
-          },
-          { label: "Institution", value: institution },
-          { label: "Department", value: department },
-          { label: "Level", value: level },
-          { label: "Email", value: email },
-          { label: "Account Type", value: isRep ? "Course Rep" : "Student" },
-        ],
+        details: confirmDetails,
       });
       if (!confirmed) return; // form stays filled so they can correct and retry
 
@@ -1697,20 +1772,68 @@ if (mobileMenuBtn && navLinks) {
         await setDoc(doc(db, "users", uid), {
           uid,
           name,
-          matric,
+          firstName: firstName || "",
+          middleName: middleName || "",
+          lastName: lastName || "",
+          matric: matric || null,
           email,
+          role: signedRole,
           isRep,
+          isAdviser: isAdviserSignup,
           institution,
           department,
           level,
+          // Phase 3 verification: adviser email-code flow fills these in.
+          verificationStatus: isAdviserSignup ? "pending_email" : "not_required",
+          verifiedAt: null,
+          // Written explicitly as null (rather than omitted) so the field always
+          // EXISTS on the document. firestore.rules pins it with
+          // `request.resource.data.X == resource.data.X`, and referencing a
+          // missing key in a rules expression is an ERROR that denies the whole
+          // update — which would break every later profile edit.
+          verificationMethod: null,
+          createdAt: serverTimestamp(),
         });
 
+        // 🛑 The account is real and the profile is on disk. THIS flag is what
+        // the `finally` block below needs to re-run handleAuthState() by hand:
+        // onAuthStateChanged() swallowed the only auth event (isCreatingAccount
+        // was still locked) and Firebase never fires it again. Without this
+        // assignment a brand-new user sits on the auth screen forever.
         signupSucceeded = true;
         signupForm.reset();
-        toast.success(
-          "Your account is ready. Welcome to VeriPresenX!",
-          "Account Created 🎉",
-        );
+
+        // --- PHASE 3: ADVISER EMAIL VERIFICATION (Firebase built-in link) ---
+        // Pilot path: the adviser signs up with their school email and we send
+        // Firebase's own verification link. The link only proves INBOX OWNERSHIP.
+        // It does NOT promote the account: `role` stays "adviser" and
+        // `verificationStatus` stays "pending_email" until api/verification.js
+        // runs the 6-digit code check, claims the adviserSlots row and writes
+        // role: "level_anchor". So we must NOT tell the user their access has
+        // unlocked here — that promise was never backed by any code.
+        // NIN stays a disabled placeholder (index.html) until after the pilot.
+        if (isAdviserSignup) {
+          try {
+            await sendEmailVerification(userCredential.user);
+            toast.info(
+              "Account created. We sent a verification link to your school email — click it to prove the address is yours. Adviser tools stay locked until that check passes.",
+              "Verify your school email 📧",
+            );
+          } catch (verifyErr) {
+            console.warn("Adviser verification email failed:", verifyErr);
+            toast.warning(
+              "Account created, but the verification email could not be sent. Log in later and use \"Resend verification\".",
+              "Check your inbox",
+            );
+          }
+        } else {
+          toast.success(
+            "Your account is ready. Welcome to VeriPresenX!",
+            "Account Created 🎉",
+          );
+        }
+        // The account now owns its role, so the picker is done for this session.
+        pendingRole = null;
       } catch (error) {
         console.error("Signup error:", error);
         toast.error(error.message, "Something went wrong");
@@ -1725,9 +1848,10 @@ if (mobileMenuBtn && navLinks) {
         }
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerHTML =
-            '<i data-lucide="user-check" style="margin-right:6px; vertical-align:-3px;"></i> Sign Up';
-          refreshIcons();
+          // Re-apply the role context instead of hardcoding a label: the previous
+          // `'...> Sign Up'` reset every role-specific field visibility and
+          // clobbered the "Join as Course Rep" button text.
+          applyRoleToForm();
         }
       }
     });
@@ -1964,7 +2088,20 @@ if (mobileMenuBtn && navLinks) {
         ? document.getElementById("settingsLevel").value
         : currentUser.level || "GENERAL"; // NEW
 
-      if (!newName || !newMatric || !currentUser || !auth.currentUser) return;
+      // Advisers carry NO matric (matric is null on their profile), so the
+      // matric field is legitimately empty for them. The old guard required a
+      // matric for EVERY account, which made the settings form a silent no-op
+      // for advisers — it returned with no toast and no error, looking frozen.
+      // Matric is also readonly in the DOM, so it can never actually change;
+      // we must NOT send it back, because writing `matric: ""` over a stored
+      // `null` fails the rules' `matric == resource.data.matric` check and the
+      // whole save is rejected with permission-denied.
+      const isAdviserAccount = !currentUser || !currentUser.matric;
+      if (!newName || !currentUser || !auth.currentUser) return;
+      if (!newMatric && !isAdviserAccount) {
+        toast.error("Your matric number is missing. Please contact support.", "Profile Error");
+        return;
+      }
 
       try {
         if (submitBtn) {
@@ -1975,12 +2112,13 @@ if (mobileMenuBtn && navLinks) {
         const oldMatric = normalizeMatric(currentUser.matric);
         const uid = auth.currentUser.uid;
 
-        // Update name, matric, and level in database
-        await updateDoc(doc(db, "users", uid), {
-          name: newName,
-          matric: newMatric,
-          level: newLevel,
-        });
+        // Update name, matric, and level in database.
+        // `matric` is only sent for accounts that actually have one. Advisers
+        // store `null`, and writing `""` over it would violate the rules'
+        // `matric == resource.data.matric` pin and fail the entire update.
+        const profilePatch = { name: newName, level: newLevel };
+        if (newMatric) profilePatch.matric = newMatric;
+        await updateDoc(doc(db, "users", uid), profilePatch);
 
         // Note: matric changes no longer propagate into courses' enrolled[]/
         // assistants[] arrays here. Tonight's rules rewrite restricts course
@@ -1994,11 +2132,17 @@ if (mobileMenuBtn && navLinks) {
 
         // Update local UI state
         currentUser.name = newName;
-        currentUser.matric = newMatric;
+        if (newMatric) currentUser.matric = newMatric; // advisers keep their null
         currentUser.level = newLevel; // NEW
 
         if (displayName) displayName.textContent = newName;
-        if (displayMatric) displayMatric.textContent = newMatric;
+        if (displayMatric) {
+          displayMatric.textContent = currentUser.matric || ROLE_LABEL[currentUser.role] || "Member";
+          const matricLabel = document.getElementById("displayMatricLabel");
+          if (matricLabel) {
+            matricLabel.textContent = currentUser.matric ? "Matric No:" : "Role:";
+          }
+        }
 
         const displaySchoolInfo = document.getElementById("displaySchoolInfo");
         if (displaySchoolInfo) {
